@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Seven Wonders Explorer</title>
+    <style>
+        :root {
+            --pink: #ffb6c1;
+            --pink-glass: rgba(255, 182, 193, 0.3);
+            --dark-glass: rgba(17, 17, 17, 0.85);
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #eef2f3;
+            overflow-x: hidden;
+        }
+
+        #loader {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: white;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 10000 !important;
+            transition: opacity 0.5s ease, visibility 0.5s;
+        }
+
+        #ellipsis::after {
+            content: '';
+            animation: dots 1.5s steps(4, end) infinite;
+        }
+
+        @keyframes dots {
+            0%, 25% { content: ''; }
+            50% { content: '.'; }
+            75% { content: '..'; }
+            100% { content: '...'; }
+        }
+
+        .fade-out {
+            opacity: 0;
+            visibility: hidden;
+        }
+
+        #menu-backdrop {
+            display: none;
+            position: fixed;
+            top: 0; left: 0;
+            width: 100vw; height: 100vh;
+            background: rgba(0,0,0,0.3);
+            z-index: 85;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.4s;
+        }
+
+        body.open-nav #menu-backdrop {
+            opacity: 1;
+            visibility: visible;
+            display: block;
+        }
+
+        #menu-icon {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            z-index: 1100;
+            width: 50px;
+            height: 50px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            transition: left 0.5s cubic-bezier(0.77, 0, 0.175, 1), transform 0.3s ease, background 0.3s ease;
+        }
+
+        #menu-icon:hover { transform: scale(1.1); background: var(--pink); }
+        .bar1, .bar2, .bar3 { width: 25px; height: 3px; background-color: #333; margin: 3px 0; transition: 0.4s; }
+        #menu-icon:hover .bar1, #menu-icon:hover .bar2, #menu-icon:hover .bar3 { background-color: white; }
+
+        .change .bar1 { transform: translateY(9px) rotate(-45deg); background: white !important; }
+        .change .bar2 { opacity: 0; }
+        .change .bar3 { transform: translateY(-9px) rotate(45deg); background: white !important; }
+
+        .sidenav {
+            height: 100%;
+            width: 0;
+            position: fixed;
+            z-index: 1000;
+            top: 0; left: 0;
+            background-color: var(--dark-glass);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            overflow-x: hidden;
+            transition: 0.5s cubic-bezier(0.77, 0, 0.175, 1);
+            padding-top: 40px;
+        }
+
+        .nav-item {
+            position: relative;
+            margin: 5px 20px;
+            opacity: 0;
+            transform: translateX(-20px);
+            transition: opacity 0.4s ease, transform 0.4s ease;
+        }
+
+        body.open-nav .nav-item { opacity: 1; transform: translateX(0); transition-delay: 0.3s; }
+
+        .sidenav a {
+            padding: 12px;
+            text-decoration: none;
+            font-size: 17px;
+            color: #eee;
+            display: block;
+            position: relative;
+            z-index: 2;
+        }
+
+        .nav-item::before, .nav-item::after {
+            content: '';
+            position: absolute;
+            width: 0; height: 0;
+            border: 2px solid transparent;
+            box-sizing: border-box;
+        }
+        .nav-item::before { top: 0; left: 0; }
+        .nav-item::after { bottom: 0; right: 0; }
+        .nav-item:hover::before { width: 100%; height: 100%; border-top-color: white; border-right-color: white; transition: width 0.1s ease-out, height 0.1s ease-out 0.1s; }
+        .nav-item:hover::after { width: 100%; height: 100%; border-bottom-color: white; border-left-color: white; transition: width 0.1s ease-out 0.2s, height 0.1s ease-out 0.3s; }
+        .nav-item:hover a { background: var(--pink-glass); color: white; }
+        .nav-item.current::before { width: 100%; height: 100%; border: 2px solid white; }
+        .nav-item.current a { background: var(--pink-glass); font-weight: bold; color: white; }
+
+        #main {
+            transition: margin-left .5s;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 60px 20px;
+        }
+
+        #map-container {
+            display: block;
+            position: relative;
+            width: 90vw;
+            max-width: 1000px;
+            aspect-ratio: 16/9;
+            background: #d1e3f0;
+            border-radius: 20px;
+            overflow: hidden;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.1);
+            margin: 20px 0;
+        }
+
+        #world-map {
+            position: absolute;
+            width: 100%; height: 100%;
+            background-image: url('https://upload.wikimedia.org/wikipedia/commons/4/41/Simple_world_map.svg');
+            background-size: contain;
+            background-repeat: no-repeat;
+            background-position: center;
+        }
+
+        .dot {
+            position: absolute;
+            width: 14px; height: 14px;
+            background: #ffb6c1;
+            border-radius: 50%;
+            cursor: pointer;
+            box-shadow: 0 0 10px rgba(255, 107, 129, 0.6);
+            transform: translate(-50%, -50%);
+            transition: transform 0.3s;
+            z-index: 5;
+        }
+        .dot:hover { transform: translate(-50%, -50%) scale(1.4); }
+
+        .bubble {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%) translateY(10px);
+            background: white;
+            color: #333;
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: bold;
+            white-space: nowrap;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+            opacity: 0;
+            visibility: hidden;
+            transition: 0.3s;
+            pointer-events: none;
+        }
+        .dot:hover .bubble { opacity: 1; visibility: visible; transform: translateX(-50%) translateY(0); }
+
+        #map-unseen {
+            display: none;
+            padding: 40px 20px;
+            text-align: center;
+            background: var(--pink-glass);
+            border-radius: 15px;
+            margin: 20px;
+            color: #333;
+            font-weight: bold;
+        }
+
+        #view-details {
+            max-width: 800px;
+            width: 90%;
+            background: white;
+            padding: 40px;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+            margin-top: 20px;
+            display: none;
+        }
+
+        #view-details h1 { color: var(--pink); border-bottom: 2px solid #eee; padding-bottom: 10px; }
+
+        @media screen and (min-width: 601px) {
+            body.open-nav .sidenav { width: 250px; }
+            body.open-nav #main { margin-left: 250px; }
+            #map-container { display: block !important; }
+            #map-unseen { display: none !important; }
+            .change#menu-icon { left: 270px; background: rgba(255, 182, 193, 0.9) !important; }
+        }
+
+        @media screen and (max-width: 600px) {
+            #menu-icon { top: auto; bottom: 30px; left: 50%; transform: translateX(-50%); border-radius: 50%; background: #333; transition: transform 0.3s ease, background 0.3s ease; }
+            #menu-icon:hover { transform: translateX(-50%) scale(1.1); }
+            .change#menu-icon { left: 50%; transform: translateX(-50%); background: var(--pink); }
+            .sidenav { width: 100% !important; height: 0; top: auto; bottom: 0; padding-top: 20px; }
+            body.open-nav .sidenav { height: 100% !important; }
+            #menu-icon .bar1, #menu-icon .bar2, #menu-icon .bar3 { background-color: white; }
+            #map-container { display: none !important; }
+            #map-unseen { display: block !important; }
+            #view-details { padding: 20px; width: 95%; margin: 10px auto; box-sizing: border-box; }
+        }
+    </style>
+</head>
+<body>
+
+<div id="loader">
+    <h1>Seven Wonders Explorer<span id="ellipsis"></span></h1>
+</div>
+
+<div id="menu-backdrop" onclick="toggleNav(document.getElementById('menu-icon'))"></div>
+
+<div id="menu-icon" onclick="toggleNav(this)">
+    <div class="bar1"></div>
+    <div class="bar2"></div>
+    <div class="bar3"></div>
+</div>
+
+<div id="sidebar" class="sidenav">
+    <div class="nav-item current" onclick="setActive(this); showMap()"><a href="#">World Map</a></div>
+    <div class="nav-item" onclick="setActive(this); showWonder('chichen')"><a href="#">Chichén Itzá</a></div>
+    <div class="nav-item" onclick="setActive(this); showWonder('christ')"><a href="#">Christ the Redeemer</a></div>
+    <div class="nav-item" onclick="setActive(this); showWonder('china')"><a href="#">Great Wall of China</a></div>
+    <div class="nav-item" onclick="setActive(this); showWonder('colosseum')"><a href="#">The Colosseum</a></div>
+    <div class="nav-item" onclick="setActive(this); showWonder('machu')"><a href="#">Machu Picchu</a></div>
+    <div class="nav-item" onclick="setActive(this); showWonder('petra')"><a href="#">Petra</a></div>
+    <div class="nav-item" onclick="setActive(this); showWonder('taj')"><a href="#">Taj Mahal</a></div>
+</div>
+
+<div id="main">
+    <div id="view-map">
+        <h1 style="color: #333;">World Map</h1>
+        <div id="map-unseen">
+            <p>Sorry, World Map is only available for desktop</p>
+        </div>
+        <div id="map-container">
+            <div id="world-map">
+                <div class="dot" style="top: 43%; left: 18%;" onclick="showWonder('chichen')"><div class="bubble">Chichén Itzá</div></div>
+                <div class="dot" style="top: 69%; left: 33%;" onclick="showWonder('christ')"><div class="bubble">Christ the Redeemer</div></div>
+                <div class="dot" style="top: 30%; left: 82%;" onclick="showWonder('china')"><div class="bubble">Great Wall of China</div></div>
+                <div class="dot" style="top: 29%; left: 51%;" onclick="showWonder('colosseum')"><div class="bubble">The Colosseum</div></div>
+                <div class="dot" style="top: 65%; left: 23%;" onclick="showWonder('machu')"><div class="bubble">Machu Picchu</div></div>
+                <div class="dot" style="top: 37%; left: 58%;" onclick="showWonder('petra')"><div class="bubble">Petra</div></div>
+                <div class="dot" style="top: 40%; left: 71%;" onclick="showWonder('taj')"><div class="bubble">Taj Mahal</div></div>
+            </div>
+        </div>
+    </div>
+
+    <div id="view-details">
+        <button onclick="showMap()" style="cursor:pointer; padding:10px; margin-bottom:20px; border:none; background:#eee; border-radius:5px;">← Back to Map</button>
+        <h1 id="wonder-title"></h1>
+        <div id="wonder-content"></div>
+    </div>
+</div>
+
+<script>
+    const wonderData = {
+        chichen: { title: "Chichén Itzá", description: "A large pre-Columbian city built by the Maya people of the Terminal Classic period." },
+        china: { title: "Great Wall of China", description: "A series of fortifications that were built across the historical northern borders of ancient Chinese states." },
+        christ: { title: "Christ The Redeemer", description: "Symbolizing peace and welcoming visitors. It is made of reinforced concrete and soapstone and is a major landmark of Brazil." },
+        colosseum: { title: "The Colosseum", description: "1st-century stone and concrete amphitheater in Rome, Italy, built for gladiatorial games." },
+        machu: { title: "Machu Picchu", description: "15th-century Inca citadel set high in the Andes Mountains of Peru, recognized as a 'Lost City of the Incas'." },
+        petra: { title: "Petra", description: "Famous archaeological site where ancient Eastern traditions blend with Hellenistic architecture." },
+        taj: { title: "Taj Mahal", description: "Ivory-white marble mausoleum in Agra, India, commissioned in 1632 by Mughal emperor Shah Jahan." }
+    };
+
+    window.addEventListener('load', () => {
+        setTimeout(() => document.getElementById('loader').classList.add('fade-out'), 1000);
+    });
+
+    let lastWidth = window.innerWidth;
+    window.addEventListener('resize', () => {
+        const currentWidth = window.innerWidth;
+        if ((lastWidth > 600 && currentWidth <= 600) || (lastWidth <= 600 && currentWidth > 600)) {
+            document.body.classList.remove("open-nav");
+            document.getElementById('menu-icon').classList.remove("change");
+            const loader = document.getElementById('loader');
+            loader.classList.remove('fade-out');
+            loader.style.visibility = "visible";
+            loader.style.opacity = "1";
+            setTimeout(() => {
+                loader.classList.add('fade-out');
+                loader.style.visibility = "";
+                loader.style.opacity = "";
+            }, 800);
+        }
+        lastWidth = currentWidth;
+    });
+
+    function toggleNav(btn) {
+        btn.classList.toggle("change");
+        document.body.classList.toggle("open-nav");
+    }
+
+    function setActive(el) {
+        document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('current'));
+        el.classList.add('current');
+        if (window.innerWidth <= 600) setTimeout(() => toggleNav(document.getElementById('menu-icon')), 300);
+    }
+
+    function showWonder(id) {
+        const data = wonderData[id];
+        if (!data) return;
+        document.getElementById('view-map').style.display = 'none';
+        const details = document.getElementById('view-details');
+        details.style.display = 'block';
+        document.getElementById('wonder-title').innerText = data.title;
+        document.getElementById('wonder-content').innerHTML = `<p>${data.description}</p>`;
+        window.scrollTo(0,0);
+    }
+
+    function showMap() {
+        document.getElementById('view-map').style.display = 'block';
+        document.getElementById('view-details').style.display = 'none';
+        document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('current'));
+        document.querySelector('.nav-item:first-child').classList.add('current');
+    }
+</script>
+
+</body>
+</html>
