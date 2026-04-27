@@ -126,19 +126,41 @@
             z-index: 2;
         }
 
+        /* DOT ARTIFACT FIX: Delay border-color changes so they only appear when width completes expanding */
         .nav-item::before, .nav-item::after {
             content: '';
             position: absolute;
             width: 0; height: 0;
             border: 2px solid transparent;
             box-sizing: border-box;
+            pointer-events: none;
         }
-        .nav-item::before { top: 0; left: 0; }
-        .nav-item::after { bottom: 0; right: 0; }
-        .nav-item:hover::before { width: 100%; height: 100%; border-top-color: white; border-right-color: white; transition: width 0.1s ease-out, height 0.1s ease-out 0.1s; }
-        .nav-item:hover::after { width: 100%; height: 100%; border-bottom-color: white; border-left-color: white; transition: width 0.1s ease-out 0.2s, height 0.1s ease-out 0.3s; }
+        
+        .nav-item::before { 
+            top: 0; left: 0; 
+            transition: height 0.1s ease-out, border-right-color 0s 0.1s, width 0.1s ease-out 0.1s, border-top-color 0s 0.2s;
+        }
+        
+        .nav-item::after { 
+            bottom: 0; right: 0; 
+            transition: height 0.1s ease-out, border-left-color 0s 0.1s, width 0.1s ease-out 0.1s, border-bottom-color 0s 0.2s;
+        }
+        
+        .nav-item:hover::before { 
+            width: 100%; height: 100%; 
+            border-top-color: white; border-right-color: white; 
+            transition: border-top-color 0s, width 0.1s ease-out, border-right-color 0s 0.1s, height 0.1s ease-out 0.1s; 
+        }
+        
+        .nav-item:hover::after { 
+            width: 100%; height: 100%; 
+            border-bottom-color: white; border-left-color: white; 
+            transition: border-bottom-color 0s 0.2s, width 0.1s ease-out 0.2s, border-left-color 0s 0.3s, height 0.1s ease-out 0.3s; 
+        }
+
         .nav-item:hover a { background: var(--pink-glass); color: white; }
-        .nav-item.current::before { width: 100%; height: 100%; border: 2px solid white; }
+        
+        .nav-item.current::before { width: 100%; height: 100%; border: 2px solid white; transition: none; }
         .nav-item.current a { background: var(--pink-glass); font-weight: bold; color: white; }
 
         #main {
@@ -147,6 +169,13 @@
             flex-direction: column;
             align-items: center;
             padding: 60px 20px;
+        }
+
+        /* PAGE VIEWS */
+        .page-view {
+            display: none;
+            width: 100%;
+            text-align: center;
         }
 
         #map-container {
@@ -159,7 +188,7 @@
             border-radius: 20px;
             overflow: hidden;
             box-shadow: 0 15px 35px rgba(0,0,0,0.1);
-            margin: 20px 0;
+            margin: 20px auto;
         }
 
         #world-map {
@@ -264,18 +293,40 @@
 </div>
 
 <div id="sidebar" class="sidenav">
-    <div class="nav-item current" onclick="setActive(this); showMap()"><a href="#">World Map</a></div>
-    <div class="nav-item" onclick="setActive(this); showWonder('chichen')"><a href="#">Chichén Itzá</a></div>
-    <div class="nav-item" onclick="setActive(this); showWonder('christ')"><a href="#">Christ the Redeemer</a></div>
-    <div class="nav-item" onclick="setActive(this); showWonder('china')"><a href="#">Great Wall of China</a></div>
-    <div class="nav-item" onclick="setActive(this); showWonder('colosseum')"><a href="#">The Colosseum</a></div>
-    <div class="nav-item" onclick="setActive(this); showWonder('machu')"><a href="#">Machu Picchu</a></div>
-    <div class="nav-item" onclick="setActive(this); showWonder('petra')"><a href="#">Petra</a></div>
-    <div class="nav-item" onclick="setActive(this); showWonder('taj')"><a href="#">Taj Mahal</a></div>
+    <div class="nav-item current" onclick="showPage('homepage', this)"><a href="#">Homepage</a></div>
+    <div class="nav-item" onclick="showPage('reviews', this)"><a href="#">Reviews</a></div>
+    <div class="nav-item" onclick="showPage('tierlist', this)"><a href="#">Tierlist</a></div>
+    <div class="nav-item" onclick="showPage('timetable', this)"><a href="#">Timetable</a></div>
+    <div class="nav-item" onclick="showPage('view-map', this)"><a href="#">World Map</a></div>
+    <div class="nav-item" onclick="showPage('gallery', this)"><a href="#">Gallery</a></div>
+    <div class="nav-item" onclick="showPage('history', this)"><a href="#">History</a></div>
+    <div class="nav-item" onclick="showPage('socials', this)"><a href="#">Social Links</a></div>
+    <div class="nav-item" onclick="showPage('help', this)"><a href="#">Further Help</a></div>
 </div>
 
 <div id="main">
-    <div id="view-map">
+    
+    <div id="homepage" class="page-view" style="display: block;">
+        <h1 style="color: #333;">Seven Wonders Explorer</h1>
+        <p>Welcome to the central hub for the world's most magnificent sites.</p>
+    </div>
+
+    <div id="reviews" class="page-view">
+        <h1 style="color: #333;">User Reviews</h1>
+        <p>What travelers are saying about the wonders.</p>
+    </div>
+
+    <div id="tierlist" class="page-view">
+        <h1 style="color: #333;">Wonders Tierlist</h1>
+        <p>Ranked by architecture and scale.</p>
+    </div>
+
+    <div id="timetable" class="page-view">
+        <h1 style="color: #333;">Visiting Timetable</h1>
+        <p>Best times of year to visit each location.</p>
+    </div>
+
+    <div id="view-map" class="page-view">
         <h1 style="color: #333;">World Map</h1>
         <div id="map-unseen">
             <p>Sorry, World Map is only available for desktop</p>
@@ -293,8 +344,28 @@
         </div>
     </div>
 
+    <div id="gallery" class="page-view">
+        <h1 style="color: #333;">Gallery</h1>
+        <p>Visual exploration of the wonders.</p>
+    </div>
+
+    <div id="history" class="page-view">
+        <h1 style="color: #333;">Historical Archive</h1>
+        <p>Deep dives into construction and ancient history.</p>
+    </div>
+
+    <div id="socials" class="page-view">
+        <h1 style="color: #333;">Social Links</h1>
+        <p>Follow our journey across the globe.</p>
+    </div>
+
+    <div id="help" class="page-view">
+        <h1 style="color: #333;">Further Help</h1>
+        <p>Support and contact info.</p>
+    </div>
+
     <div id="view-details">
-        <button onclick="showMap()" style="cursor:pointer; padding:10px; margin-bottom:20px; border:none; background:#eee; border-radius:5px;">← Back to Map</button>
+        <button onclick="backToMap()" style="cursor:pointer; padding:10px; margin-bottom:20px; border:none; background:#eee; border-radius:5px;">← Back to Map</button>
         <h1 id="wonder-title"></h1>
         <div id="wonder-content"></div>
     </div>
@@ -339,28 +410,41 @@
         document.body.classList.toggle("open-nav");
     }
 
-    function setActive(el) {
+    // Handles sidebar page navigation
+    function showPage(pageId, el) {
+        // Hide all pages and details
+        document.querySelectorAll('.page-view').forEach(p => p.style.display = 'none');
+        document.getElementById('view-details').style.display = 'none';
+        
+        // Show selected page
+        document.getElementById(pageId).style.display = 'block';
+
+        // Update active class in sidebar
         document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('current'));
-        el.classList.add('current');
+        if (el) el.classList.add('current');
+
+        // Close menu on mobile
         if (window.innerWidth <= 600) setTimeout(() => toggleNav(document.getElementById('menu-icon')), 300);
     }
 
+    // Shows specific wonder details (triggered from map dots)
     function showWonder(id) {
         const data = wonderData[id];
         if (!data) return;
+        
         document.getElementById('view-map').style.display = 'none';
         const details = document.getElementById('view-details');
         details.style.display = 'block';
+        
         document.getElementById('wonder-title').innerText = data.title;
         document.getElementById('wonder-content').innerHTML = `<p>${data.description}</p>`;
         window.scrollTo(0,0);
     }
 
-    function showMap() {
-        document.getElementById('view-map').style.display = 'block';
+    // Navigates back to map from details page
+    function backToMap() {
         document.getElementById('view-details').style.display = 'none';
-        document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('current'));
-        document.querySelector('.nav-item:first-child').classList.add('current');
+        document.getElementById('view-map').style.display = 'block';
     }
 </script>
 
